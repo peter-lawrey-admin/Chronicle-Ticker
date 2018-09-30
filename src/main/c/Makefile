@@ -10,7 +10,7 @@ TARGET := $(TARGET_DIR)/libticker.so
 
 WORKING_DIR := $(TARGET_DIR)/../jni
 
-JAVA_CLASSES = net.openhft.chronicle.ticker.JNIClock
+JAVA_CLASSES = net.openhft.chronicle.ticker.RdtscTicker
 
 JNI_STUBS := $(subst .,_,$(JAVA_CLASSES))
 JNI_HEADERS := $(patsubst %,$(WORKING_DIR)/%.h,$(JNI_STUBS))

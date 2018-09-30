@@ -8,7 +8,7 @@ import static org.junit.Assume.assumeTrue;
 public class RdtscTickerTest {
     @Test
     public void count() {
-        assumeTrue(System.getProperty("os.name").endsWith("nux"));
+        assumeTrue(RdtscTicker.LOADED);
         Ticker instance = RdtscTicker.INSTANCE;
         long a = instance.count();
         for (int i = 0; i < 1000; i++) {
@@ -20,7 +20,7 @@ public class RdtscTickerTest {
 
     @Test
     public void countPerSecond() {
-        assumeTrue(System.getProperty("os.name").endsWith("nux"));
+        assumeTrue(RdtscTicker.LOADED);
         Ticker instance = RdtscTicker.INSTANCE;
         assertTrue(instance.countPerSecond() >= 1_000_000_000L);
         assertTrue(instance.countPerSecond() < 10_000_000_000L);
@@ -29,6 +29,7 @@ public class RdtscTickerTest {
 
     @Test
     public void countFromEpoch() {
+        assumeTrue(RdtscTicker.LOADED);
         assumeTrue(System.getProperty("os.name").endsWith("nux"));
     }
 }

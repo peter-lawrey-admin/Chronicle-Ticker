@@ -17,6 +17,7 @@
 
 package net.openhft.chronicle.ticker;
 
+import java.net.URL;
 import java.util.logging.Logger;
 
 /**
@@ -35,13 +36,28 @@ public enum RdtscTicker implements Ticker {
     private static long epochOffset;
 
     static {
-        boolean loaded;
+        boolean loaded = false;
         try {
-            System.loadLibrary("ticker");
+            try {
+                URL url = RdtscTicker.class.getClassLoader().getResource("libticker.so");
+                if (url != null) {
+                    System.load(url.getFile());
+                    loaded = true;
+                }
+            } catch (Exception e) {
+                // ignored.
+            }
+            if (!loaded)
+                System.loadLibrary("ticker");
 
-            estimateFrequency(50);
-            estimateFrequency(200);
-            LOGGER.info("Estimated clock frequency was " + cpuFrequency + " MHz");
+            estimateFrequency(25);
+            estimateFrequency(100);
+            Thread t = new Thread(() -> {
+                estimateFrequency(1000);
+                LOGGER.info("Estimated clock frequency was " + cpuFrequency + " Hz");
+            });
+            t.setDaemon(true);
+            t.start();
             rdtsc0();
             loaded = true;
         } catch (UnsatisfiedLinkError ule) {
@@ -57,14 +73,14 @@ public enum RdtscTicker implements Ticker {
         while ((now = System.nanoTime()) == start) {
         }
 
-        long end = start + factor * 1000000;
+        long end = start + factor * 1000000L;
         final long start0 = rdtsc0();
         while ((now = System.nanoTime()) < end) {
         }
         long end0 = rdtsc0();
         end = now;
 
-        cpuFrequency = (end0 - start0 + 1) * 1000 / (end - start);
+        cpuFrequency = (end0 - start0 + 1) * 1_000_000_000L / (end - start);
         epochOffset = System.currentTimeMillis() * cpuFrequency - rdtsc0();
     }
 
