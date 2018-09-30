@@ -1,2 +1,4 @@
-# Chronicle-Ticker
+= Chronicle-Ticker
+Peter Lawrey
+
 A time ticker as a light weight clock
