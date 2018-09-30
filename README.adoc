@@ -50,7 +50,7 @@ long timeInMicros = (end - start) * 1_000_000 / ticker.countPerSecond();
 .Measured on a i7 - 7820X (3.6 GHz)
 |===
 | Ticker | Latency
-| Ticker.nanos() | 14.8 ns
-| Ticker.highResolution() | 6.8 ns
+| Ticker.nanos().count() | 14.8 ns
+| Ticker.highResolution().count() | 6.8 ns
 |===
 
