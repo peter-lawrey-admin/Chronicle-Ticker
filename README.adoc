@@ -32,7 +32,7 @@ double timeInSecs = ticker.count() / (double) ticker.countPerSecond();
 === High resolution ticker
 
 .Ticker which uses a high resolution time
-[souce, Java]
+[source, Java]
 ----
 Ticker ticker = Ticker.highResolution();
 
