@@ -2,3 +2,46 @@
 Peter Lawrey
 
 A time ticker as a light weight clock
+
+== Simple Tickers
+
+.Tickers which use System.currentTimeMillis() or nanoTime()
+[source, Java]
+----
+Ticker ticker = Ticker.millis();
+// or
+Ticker ticker = Ticker.nanos();
+
+double timeInSec = ticker.count() / (double) ticker.countPerSecond();
+----
+
+.Ticker for testing purposes
+[source, Java]
+----
+Ticker ticker = Ticker.forTesting()
+                      .count(System.currentTimeMillis());
+// or
+Ticker ticker = Ticker.forTesting()
+                      .count(System.currentTimeMillis() * 1000)
+                      .countPerSecond(1_000_000)
+                      .countFromEpoch(0);
+
+double timeInSecs = ticker.count() / (double) ticker.countPerSecond();
+----
+
+=== High resolution ticker
+
+.Ticker which uses a high resolution time
+[souce, Java]
+----
+Ticker ticker = Ticker.highResolution();
+
+long start = ticker.count();
+// do some work
+long end = ticker.count();
+
+double timeInSecs = (double) (end - start) / ticker.countPerSecond();
+// or
+long timeInMicros = (end - start) * 1_000_000 / ticker.countPerSecond();
+----
+

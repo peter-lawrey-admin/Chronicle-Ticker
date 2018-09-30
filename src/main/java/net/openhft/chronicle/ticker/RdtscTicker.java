@@ -17,8 +17,10 @@
 
 package net.openhft.chronicle.ticker;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.net.URL;
-import java.util.logging.Logger;
 
 /**
  * JNI-based implementation, trying to use rdtsc() system call
@@ -31,7 +33,7 @@ public enum RdtscTicker implements Ticker {
     INSTANCE;
 
     public static final boolean LOADED;
-    private static final Logger LOGGER = Logger.getLogger(RdtscTicker.class.getName());
+    private static final Logger LOGGER = LoggerFactory.getLogger(RdtscTicker.class);
     private static long cpuFrequency = 1000;
     private static long epochOffset;
 
@@ -61,7 +63,7 @@ public enum RdtscTicker implements Ticker {
             rdtsc0();
             loaded = true;
         } catch (UnsatisfiedLinkError ule) {
-            LOGGER.fine("Unable to find libCEInternals in [" + System.getProperty("java.library.path") + "] " + ule);
+            LOGGER.debug("Unable to find libticker in [" + System.getProperty("java.library.path") + "] " + ule);
             loaded = false;
         }
         LOADED = loaded;
