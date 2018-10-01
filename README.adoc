@@ -42,7 +42,9 @@ long end = ticker.count();
 
 double timeInSecs = (double) (end - start) / ticker.countPerSecond();
 // or
-long timeInMicros = (end - start) * 1_000_000 / ticker.countPerSecond();
+long timeInMicros = (end - start) * 1_000 / ticker.countPerSecond();
+// or
+long timeInMillis = (end - start) * 1_000_000 / ticker.countPerSecond();
 ----
 
 === Performance
