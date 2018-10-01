@@ -21,6 +21,14 @@
 #include <jni.h>
 #include "net_openhft_chronicle_ticker_RdtscTicker.h"
 
+#if defined(__x86_64__)
+    #if defined( __GNUC__)
+        #include <x86intrin.h>
+    #elif defined(_MSC_VER)
+        #include <intrin.h>
+    #endif
+#endif
+
 #if defined(__i386__)
 static __inline__ unsigned long long rdtsc(void) {
   unsigned long long int x;
@@ -30,9 +38,41 @@ static __inline__ unsigned long long rdtsc(void) {
 
 #elif defined(__x86_64__)
 static __inline__ unsigned long long rdtsc(void) {
-  unsigned hi, lo;
-  __asm__ __volatile__ ("rdtsc" : "=a"(lo), "=d"(hi));
-  return ( (unsigned long long)lo)|( ((unsigned long long)hi)<<32 );
+#if 0
+    #if 0
+      unsigned hi, lo;
+      __asm__ __volatile__ ("rdtsc" : "=a"(lo), "=d"(hi));
+      return ( (unsigned long long)lo)|( ((unsigned long long)hi)<<32 );
+    #else
+        unsigned int eax = 0, edx;
+
+        __asm__ __volatile__("cpuid;"
+                     "rdtsc;"
+                    : "+a" (eax), "=d" (edx)
+                    :
+                    : "%rcx", "%rbx", "memory");
+
+        __asm__ __volatile__("xorl %%eax, %%eax;"
+                     "cpuid;"
+                    :
+                    :
+                    : "%rax", "%rbx", "%rcx", "%rdx", "memory");
+
+        return (((unsigned long long)edx << 32) | eax);
+    #endif
+
+#else
+
+    #if 0
+      unsigned hi, lo;
+      __asm__ __volatile__ ("rdtscp" : "=a"(lo), "=d"(hi) : : "%ecx", "memory" );
+      return ( (unsigned long long)lo)|( ((unsigned long long)hi)<<32 );
+    #else
+      unsigned dummy;
+      return __rdtscp(&dummy);
+    #endif
+
+#endif
 }
 
 #elif defined(__MIPS_32__)
