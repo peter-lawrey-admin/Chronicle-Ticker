@@ -6,11 +6,11 @@
 # C sources to compile
 
 TARGET_DIR := ../../../target/classes
-TARGET := $(TARGET_DIR)/libticker.so
+TARGET := $(TARGET_DIR)/libnativetime.so
 
 WORKING_DIR := $(TARGET_DIR)/../jni
 
-JAVA_CLASSES = net.openhft.chronicle.ticker.RdtscTicker
+JAVA_CLASSES = net.openhft.chronicle.ticker.NativeTime
 
 JNI_STUBS := $(subst .,_,$(JAVA_CLASSES))
 JNI_HEADERS := $(patsubst %,$(WORKING_DIR)/%.h,$(JNI_STUBS))
@@ -38,7 +38,7 @@ endif
 all: $(TARGET)
 
 $(TARGET): $(JNI_HEADERS) $(JNI_SOURCES)
-	$(CXX) -O3 -Wall -shared -fPIC $(JVM_SHARED_LIBS) -ljvm -lrt $(INCLUDES) $(JNI_SOURCES) -o $(TARGET)
+	$(CXX) -O3 -Wall -std=c++11 -shared -fPIC $(JVM_SHARED_LIBS) -ljvm -lrt $(INCLUDES) $(JNI_SOURCES) -o $(TARGET)
 
 $(JNI_HEADERS): $(JNI_JAVA_SOURCES)
 	mkdir -p $(TARGET_DIR)/jni

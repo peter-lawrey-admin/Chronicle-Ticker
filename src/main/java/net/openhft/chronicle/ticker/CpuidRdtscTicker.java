@@ -17,24 +17,12 @@
 
 package net.openhft.chronicle.ticker;
 
-public class NanoTicker implements Ticker {
-    public static final NanoTicker INSTANCE = new NanoTicker();
+public class CpuidRdtscTicker implements NativeTicker {
+    public static final CpuidRdtscTicker INSTANCE = new CpuidRdtscTicker();
 
     @Override
-    public long count() {
-        return System.nanoTime();
-    }
-
-    @Override
-    public long countPerSecond() {
-        return 1_000_000_000L;
-    }
-
-    @Override
-    public long countFromEpoch() {
-        long arbitraryNS = System.nanoTime();
-        long realNS = NativeTime.clocknanos();
-
-        return realNS - arbitraryNS;
+    public long count()
+    {
+        return NativeTime.cpuid_rdtsc();
     }
 }

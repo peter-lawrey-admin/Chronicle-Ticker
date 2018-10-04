@@ -17,24 +17,20 @@
 
 package net.openhft.chronicle.ticker;
 
-public class NanoTicker implements Ticker {
-    public static final NanoTicker INSTANCE = new NanoTicker();
+public interface NativeTicker extends Ticker {
 
     @Override
-    public long count() {
-        return System.nanoTime();
+    default public long countPerSecond()
+    {
+        return (long)(1000000000.0 * NativeTime.ticksPerNanosecond());
     }
 
     @Override
-    public long countPerSecond() {
-        return 1_000_000_000L;
-    }
+    default public long countFromEpoch()
+    {
+        long arbitraryTicks = count();
+        long realTicks = (long)((double)NativeTime.clocknanos() * NativeTime.ticksPerNanosecond());
 
-    @Override
-    public long countFromEpoch() {
-        long arbitraryNS = System.nanoTime();
-        long realNS = NativeTime.clocknanos();
-
-        return realNS - arbitraryNS;
+        return realTicks - arbitraryTicks;
     }
 }

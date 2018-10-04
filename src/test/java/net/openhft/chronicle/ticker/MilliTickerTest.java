@@ -2,11 +2,11 @@ package net.openhft.chronicle.ticker;
 
 import org.junit.Test;
 
-public class NanoTickerTest implements BaseTickerTest {
+public class MilliTickerTest implements BaseTickerTest {
 
     @Test
     public void perfTest() {
-        driver(NanoTicker.INSTANCE);
+        driver(MilliTicker.INSTANCE);
     }
 
 }

@@ -17,91 +17,12 @@
 
 package net.openhft.chronicle.ticker;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.net.URL;
-
-/**
- * JNI-based implementation, trying to use rdtsc() system call
- * to access the most precise timer available
- *
- * @author cheremin
- * @author plawrey
- */
-public enum RdtscTicker implements Ticker {
-    INSTANCE;
-
-    public static final boolean LOADED;
-    private static final Logger LOGGER = LoggerFactory.getLogger(RdtscTicker.class);
-    private static long cpuFrequency = 1000;
-    private static long epochOffset;
-
-    static {
-        boolean loaded = false;
-        try {
-            try {
-                URL url = RdtscTicker.class.getClassLoader().getResource("libticker.so");
-                if (url != null) {
-                    System.load(url.getFile());
-                    loaded = true;
-                }
-            } catch (Exception e) {
-                // ignored.
-            }
-            if (!loaded)
-                System.loadLibrary("ticker");
-
-            estimateFrequency(25);
-            estimateFrequency(100);
-            Thread t = new Thread(() -> {
-                estimateFrequency(1000);
-                LOGGER.info("Estimated clock frequency was " + cpuFrequency + " Hz");
-            });
-            t.setDaemon(true);
-            t.start();
-            rdtsc0();
-            loaded = true;
-        } catch (UnsatisfiedLinkError ule) {
-            LOGGER.debug("Unable to find libticker in [" + System.getProperty("java.library.path") + "] " + ule);
-            loaded = false;
-        }
-        LOADED = loaded;
-    }
-
-    private static void estimateFrequency(int factor) {
-        final long start = System.nanoTime();
-        long now;
-        while ((now = System.nanoTime()) == start) {
-        }
-
-        long end = start + factor * 1000000L;
-        final long start0 = rdtsc0();
-        while ((now = System.nanoTime()) < end) {
-        }
-        long end0 = rdtsc0();
-        end = now;
-
-        cpuFrequency = (end0 - start0 + 1) * 1_000_000_000L / (end - start);
-        epochOffset = System.currentTimeMillis() * cpuFrequency - rdtsc0();
-    }
-
-    native static long rdtsc0();
+public class RdtscTicker implements NativeTicker {
+    public static final RdtscTicker INSTANCE = new RdtscTicker();
 
     @Override
-    public long count() {
-        return rdtsc0();
-    }
-
-    @Override
-    public long countPerSecond() {
-        return cpuFrequency;
-    }
-
-    @Override
-    public long countFromEpoch() {
-        long epochOffset0 = System.currentTimeMillis() * cpuFrequency - rdtsc0();
-        epochOffset += (epochOffset0 - epochOffset) / 16;
-        return epochOffset;
+    public long count()
+    {
+        return NativeTime.rdtsc();
     }
 }
