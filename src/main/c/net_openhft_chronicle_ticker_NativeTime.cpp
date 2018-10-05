@@ -19,19 +19,141 @@
 
 #include <jni.h>
 #include "net_openhft_chronicle_ticker_NativeTime.h"
-#include <time.h>
 #include <cstdint>
 
-#if defined(__x86_64__)
-    #if defined( __GNUC__)
-        #include <x86intrin.h>
-    #elif defined(_MSC_VER)
-        #include <intrin.h>
-    #endif
+#if defined( _MSC_VER )
+    #include <Windows.h>
+    #include <intrin.h>
+    #include <mutex>
+    #include <thread>
+    #include <chrono>
+    #include <atomic>
+#elif defined(__GNUC__)
+    #include <time.h>
+    #include <x86intrin.h>
 #endif
 
 namespace detail
 {
+
+#if defined(_WIN32)
+/**
+ *  Windows has relatively poor precision on even its most precise wall clock (GetSystemTimeAsFileTime)
+ *  Similarly, the QPC/performance counter only ticks once every 300ns or so (QueryPerformanceCounter)
+ *  The below combines QPC, GeSystemTimeAsFileTime, and rdtsc to provide a synthetic nanosecond resolution clock
+ *  Calibrates on program start, and updates calibration every 60s via a background thread
+ *  Typical call overhead is ~20ns
+ */
+class spinlock
+{
+public:
+	void lock()	{ while (lock_.test_and_set(std::memory_order_acquire)); }
+	void unlock() { lock_.clear(std::memory_order_release); }
+private:
+	std::atomic_flag lock_ = ATOMIC_FLAG_INIT;
+};
+
+class WinNanoClock
+{
+public:
+	WinNanoClock()
+	: BASELINE_COUNT(0)
+	, BASELINE_NANOS(0)
+	, INV_TICKS_PER_NANO(1.0)
+	{
+		initial_warmup_();
+
+		std::thread t(&WinNanoClock::background_, this);
+		t.detach();
+	}
+
+private:
+	void initial_warmup_()
+	{
+		warmup_(1000); // initial coarse estimate; takes about 1us on program startup (during static initialisation)
+	}
+
+	void background_()
+	{
+		// background thread which performs a fine-grained resync with wall clock once a minute
+		// NB: this means there can be edge cases where the nano-clock time goes backwards between 2 calls
+		for (;;)
+		{
+			warmup_(1);
+			std::this_thread::sleep_for(std::chrono::milliseconds(60000)); // resync every minute
+		}
+	}
+
+	void warmup_( uint64_t factor )
+	{
+		// get fixed counts per second of Windows high performance counter (typically around 3+million)
+		LARGE_INTEGER COUNTS_PER_SEC;
+		QueryPerformanceFrequency(&COUNTS_PER_SEC);
+
+		// calibrate Windows HPC ticks with CPU ticks
+		uint64_t ticks0 = ticks_();
+		LARGE_INTEGER count0;
+		QueryPerformanceCounter(&count0);
+
+		LARGE_INTEGER count1;
+		do { QueryPerformanceCounter(&count1); } while (factor * (count1.QuadPart - count0.QuadPart) < (uint64_t)COUNTS_PER_SEC.QuadPart);
+		uint64_t ticks1 = ticks_();
+
+		INV_TICKS_PER_NANO = 1000000000.0 / (double)(factor * (ticks1 - ticks0));
+
+		// get current nanosecond time, to calibrate CPU ticks with wall time
+		// this seems to be the best wall clock Windows supports, but is still relatively low precision
+		{
+			constexpr uint64_t HNS_PER_SEC = 10000000ULL; // 100ns per second
+			constexpr uint64_t NS_PER_HNS = 100ULL; // nanos per 100ns
+
+			FILETIME ft;
+			ULARGE_INTEGER hnsTime;
+
+			GetSystemTimeAsFileTime(&ft);
+
+			hnsTime.LowPart = ft.dwLowDateTime;
+			hnsTime.HighPart = ft.dwHighDateTime;
+
+			// get POSIX Epoch as baseline (subtract the number of hns intervals from Jan 1, 1601 to Jan 1, 1970)
+			hnsTime.QuadPart -= (11644473600ULL * HNS_PER_SEC);
+
+			struct timespec { long tv_sec; long tv_nsec; };
+			timespec ct;
+
+			ct.tv_nsec = (long)((hnsTime.QuadPart % HNS_PER_SEC) * NS_PER_HNS);
+			ct.tv_sec = (long)(hnsTime.QuadPart / HNS_PER_SEC);
+
+			std::lock_guard<spinlock> guard(lock_);
+			BASELINE_NANOS = ((uint64_t)1000000000 * ct.tv_sec + ct.tv_nsec);
+			BASELINE_COUNT = ticks_();
+		}
+	}
+
+	uint64_t ticks_()
+	{
+		return __rdtsc();
+	}
+
+public:
+	uint64_t now()
+	{
+		uint64_t count_now = ticks_();
+
+		std::lock_guard<spinlock> guard(lock_);
+		uint64_t elapsed_count = count_now - BASELINE_COUNT;
+		uint64_t elapsed_nanos = (uint64_t)(elapsed_count*INV_TICKS_PER_NANO);
+		return BASELINE_NANOS + elapsed_nanos;
+	}
+
+private:
+	uint64_t BASELINE_COUNT;    // CPU tick value corresponding to calibration wall time
+	uint64_t BASELINE_NANOS;    // calibration wall time in nanos
+	double  INV_TICKS_PER_NANO; // store as 1/ticks to avoid a division in the main lookup
+	spinlock lock_;
+};
+static WinNanoClock winNanoClock; // static so created at program start. continually recalibrates every 60s after
+#endif
 
 /**
  * rdtsc - read cpu timestamp counter - implementation for several platforms
@@ -39,24 +161,10 @@ namespace detail
  * this ensures the counter is synchronised across cores and not affected by power management/CPU-clock respectively
  * NB: rdtsc calls can be reordered around other instructions by the CPU, so timings should be used with care if profiling code
  */
-#if defined(__i386__)
+#if defined(__i386__) || defined( __x86_64__ ) || defined(_MSC_VER)
     uint64_t rdtsc()
     {
-        uint64_t x;
-        __asm__ volatile (".byte 0x0f, 0x31" : "=A" (x));
-        return x;
-    }
-#elif defined(__x86_64__)
-    uint64_t rdtsc()
-    {
-        uint32_t lo, hi;
-        asm volatile (
-         "rdtsc"
-        : "=a"(lo), "=d"(hi)   // output
-        : "a"(0)               // input
-        : "%ebx", "%ecx");     // clobbers
-        uint64_t x = ((uint64_t)lo) | (((uint64_t)hi) << 32);
-        return x;
+        return __rdtsc();
     }
 #elif defined(__MIPS_32__)
     #define rdtsc(dest) _ _asm_ _ _ _volatile_ _("mfc0 %0,$9; nop" : "=r" (dest))
@@ -110,9 +218,13 @@ uint64_t rdtscp()
  */
 uint64_t clocknanos()
 {
+#if !defined(_WIN32)
     struct timespec tv{};
     clock_gettime( CLOCK_REALTIME, &tv );
     return ((uint64_t)1000000000*tv.tv_sec + tv.tv_nsec);
+#else
+    return winNanoClock.now();
+#endif
 }
 
 } // detail
