@@ -103,14 +103,15 @@ private:
 
 		// get current nanosecond time, to calibrate CPU ticks with wall time
 		// this seems to be the best wall clock Windows supports, but is still relatively low precision
-		{
+        auto get_precise_time = []()->uint64_t
+        {
 			constexpr uint64_t HNS_PER_SEC = 10000000ULL; // 100ns per second
 			constexpr uint64_t NS_PER_HNS = 100ULL; // nanos per 100ns
 
 			FILETIME ft;
 			ULARGE_INTEGER hnsTime;
 
-			GetSystemTimeAsFileTime(&ft);
+			GetSystemTimePreciseAsFileTime(&ft);
 
 			hnsTime.LowPart = ft.dwLowDateTime;
 			hnsTime.HighPart = ft.dwHighDateTime;
@@ -124,10 +125,22 @@ private:
 			ct.tv_nsec = (long)((hnsTime.QuadPart % HNS_PER_SEC) * NS_PER_HNS);
 			ct.tv_sec = (long)(hnsTime.QuadPart / HNS_PER_SEC);
 
-			std::lock_guard<spinlock> guard(lock_);
-			BASELINE_NANOS = ((uint64_t)1000000000 * ct.tv_sec + ct.tv_nsec);
-			BASELINE_COUNT = ticks_();
-		}
+            return ((uint64_t)1000000000 * ct.tv_sec + ct.tv_nsec);
+        };
+
+        const uint64_t t0 = get_precise_time();
+        for (;;)
+        {
+            const uint64_t t1 = get_precise_time();
+            if (t1 > t0)
+            {
+                std::lock_guard<spinlock> guard(lock_);
+                BASELINE_NANOS = t1;
+                BASELINE_COUNT = ticks_();
+
+                break;
+            }
+        }
 	}
 
 	uint64_t ticks_()
