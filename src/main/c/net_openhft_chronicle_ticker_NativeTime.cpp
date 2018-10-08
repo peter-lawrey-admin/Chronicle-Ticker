@@ -47,83 +47,83 @@ namespace detail
 class spinlock
 {
 public:
-	void lock()	{ while (lock_.test_and_set(std::memory_order_acquire)); }
-	void unlock() { lock_.clear(std::memory_order_release); }
+    void lock()	{ while (lock_.test_and_set(std::memory_order_acquire)); }
+    void unlock() { lock_.clear(std::memory_order_release); }
 private:
-	std::atomic_flag lock_ = ATOMIC_FLAG_INIT;
+    std::atomic_flag lock_ = ATOMIC_FLAG_INIT;
 };
 
 class WinNanoClock
 {
 public:
-	WinNanoClock()
-	: BASELINE_COUNT(0)
-	, BASELINE_NANOS(0)
-	, INV_TICKS_PER_NANO(1.0)
-	{
-		initial_warmup_();
+    WinNanoClock()
+    : BASELINE_COUNT(0)
+    , BASELINE_NANOS(0)
+    , INV_TICKS_PER_NANO(1.0)
+    {
+        initial_warmup_();
 
-		std::thread t(&WinNanoClock::background_, this);
-		t.detach();
-	}
+        std::thread t(&WinNanoClock::background_, this);
+        t.detach();
+    }
 
 private:
-	void initial_warmup_()
-	{
-		warmup_(1000); // initial coarse estimate; takes about 1us on program startup (during static initialisation)
-	}
+    void initial_warmup_()
+    {
+        warmup_(1000); // initial coarse estimate; takes about 1us on program startup (during static initialisation)
+    }
 
-	void background_()
-	{
-		// background thread which performs a fine-grained resync with wall clock once a minute
-		// NB: this means there can be edge cases where the nano-clock time goes backwards between 2 calls
-		for (;;)
-		{
-			warmup_(1);
-			std::this_thread::sleep_for(std::chrono::milliseconds(60000)); // resync every minute
-		}
-	}
+    void background_()
+    {
+        // background thread which performs a fine-grained resync with wall clock once a minute
+        // NB: this means there can be edge cases where the nano-clock time goes backwards between 2 calls
+        for (;;)
+        {
+            warmup_(1);
+            std::this_thread::sleep_for(std::chrono::milliseconds(60000)); // resync every minute
+        }
+    }
 
-	void warmup_( uint64_t factor )
-	{
-		// get fixed counts per second of Windows high performance counter (typically around 3+million)
-		LARGE_INTEGER COUNTS_PER_SEC;
-		QueryPerformanceFrequency(&COUNTS_PER_SEC);
+    void warmup_( uint64_t factor )
+    {
+        // get fixed counts per second of Windows high performance counter (typically around 3+million)
+        LARGE_INTEGER COUNTS_PER_SEC;
+        QueryPerformanceFrequency(&COUNTS_PER_SEC);
 
-		// calibrate Windows HPC ticks with CPU ticks
-		uint64_t ticks0 = ticks_();
-		LARGE_INTEGER count0;
-		QueryPerformanceCounter(&count0);
+        // calibrate Windows HPC ticks with CPU ticks
+        uint64_t ticks0 = ticks_();
+        LARGE_INTEGER count0;
+        QueryPerformanceCounter(&count0);
 
-		LARGE_INTEGER count1;
-		do { QueryPerformanceCounter(&count1); } while (factor * (count1.QuadPart - count0.QuadPart) < (uint64_t)COUNTS_PER_SEC.QuadPart);
-		uint64_t ticks1 = ticks_();
+        LARGE_INTEGER count1;
+        do { QueryPerformanceCounter(&count1); } while (factor * (count1.QuadPart - count0.QuadPart) < (uint64_t)COUNTS_PER_SEC.QuadPart);
+        uint64_t ticks1 = ticks_();
 
-		INV_TICKS_PER_NANO = 1000000000.0 / (double)(factor * (ticks1 - ticks0));
+        INV_TICKS_PER_NANO = 1000000000.0 / (double)(factor * (ticks1 - ticks0));
 
-		// get current nanosecond time, to calibrate CPU ticks with wall time
-		// this seems to be the best wall clock Windows supports, but is still relatively low precision
+        // get current nanosecond time, to calibrate CPU ticks with wall time
+        // this seems to be the best wall clock Windows supports, but is still relatively low precision
         auto get_precise_time = []()->uint64_t
         {
-			constexpr uint64_t HNS_PER_SEC = 10000000ULL; // 100ns per second
-			constexpr uint64_t NS_PER_HNS = 100ULL; // nanos per 100ns
+            constexpr uint64_t HNS_PER_SEC = 10000000ULL; // 100ns per second
+            constexpr uint64_t NS_PER_HNS = 100ULL; // nanos per 100ns
 
-			FILETIME ft;
-			ULARGE_INTEGER hnsTime;
+            FILETIME ft;
+            ULARGE_INTEGER hnsTime;
 
-			GetSystemTimePreciseAsFileTime(&ft);
+            GetSystemTimePreciseAsFileTime(&ft);
 
-			hnsTime.LowPart = ft.dwLowDateTime;
-			hnsTime.HighPart = ft.dwHighDateTime;
+            hnsTime.LowPart = ft.dwLowDateTime;
+            hnsTime.HighPart = ft.dwHighDateTime;
 
-			// get POSIX Epoch as baseline (subtract the number of hns intervals from Jan 1, 1601 to Jan 1, 1970)
-			hnsTime.QuadPart -= (11644473600ULL * HNS_PER_SEC);
+            // get POSIX Epoch as baseline (subtract the number of hns intervals from Jan 1, 1601 to Jan 1, 1970)
+            hnsTime.QuadPart -= (11644473600ULL * HNS_PER_SEC);
 
-			struct timespec { long tv_sec; long tv_nsec; };
-			timespec ct;
+            struct timespec { long tv_sec; long tv_nsec; };
+            timespec ct;
 
-			ct.tv_nsec = (long)((hnsTime.QuadPart % HNS_PER_SEC) * NS_PER_HNS);
-			ct.tv_sec = (long)(hnsTime.QuadPart / HNS_PER_SEC);
+            ct.tv_nsec = (long)((hnsTime.QuadPart % HNS_PER_SEC) * NS_PER_HNS);
+            ct.tv_sec = (long)(hnsTime.QuadPart / HNS_PER_SEC);
 
             return ((uint64_t)1000000000 * ct.tv_sec + ct.tv_nsec);
         };
@@ -141,29 +141,29 @@ private:
                 break;
             }
         }
-	}
+    }
 
-	uint64_t ticks_()
-	{
-		return __rdtsc();
-	}
+    uint64_t ticks_()
+    {
+        return __rdtsc();
+    }
 
 public:
-	uint64_t now()
-	{
-		uint64_t count_now = ticks_();
+    uint64_t now()
+    {
+        uint64_t count_now = ticks_();
 
-		std::lock_guard<spinlock> guard(lock_);
-		uint64_t elapsed_count = count_now - BASELINE_COUNT;
-		uint64_t elapsed_nanos = (uint64_t)(elapsed_count*INV_TICKS_PER_NANO);
-		return BASELINE_NANOS + elapsed_nanos;
-	}
+        std::lock_guard<spinlock> guard(lock_);
+        uint64_t elapsed_count = count_now - BASELINE_COUNT;
+        uint64_t elapsed_nanos = (uint64_t)(elapsed_count*INV_TICKS_PER_NANO);
+        return BASELINE_NANOS + elapsed_nanos;
+    }
 
 private:
-	uint64_t BASELINE_COUNT;    // CPU tick value corresponding to calibration wall time
-	uint64_t BASELINE_NANOS;    // calibration wall time in nanos
-	double  INV_TICKS_PER_NANO; // store as 1/ticks to avoid a division in the main lookup
-	spinlock lock_;
+    uint64_t BASELINE_COUNT;    // CPU tick value corresponding to calibration wall time
+    uint64_t BASELINE_NANOS;    // calibration wall time in nanos
+    double  INV_TICKS_PER_NANO; // store as 1/ticks to avoid a division in the main lookup
+    spinlock lock_;
 };
 static WinNanoClock winNanoClock; // static so created at program start. continually recalibrates every 60s after
 #endif
