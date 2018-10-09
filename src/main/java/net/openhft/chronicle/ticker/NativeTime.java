@@ -20,7 +20,9 @@ package net.openhft.chronicle.ticker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.lang.reflect.Field;
 import java.net.URL;
+import java.security.CodeSource;
 
 /**
  * JNI-based implementation, trying to use rdtsc() system call
@@ -40,6 +42,72 @@ public class NativeTime {
         boolean loaded = false;
         try {
             try {
+                // unpack .so from jar to tmpdir/os/arch
+                CodeSource src = NativeTime.class.getProtectionDomain().getCodeSource();
+                if (src != null) {
+                    String destDir = System.getProperty("java.io.tmpdir");
+                    String osname = System.getProperty("os.name").toLowerCase();
+                    String arch = System.getProperty("os.arch").toLowerCase();
+                    String pattern = osname + java.io.File.separator + arch;
+
+                    String jarFile = src.getLocation().getFile();
+                    java.util.jar.JarFile jar = new java.util.jar.JarFile(jarFile);
+                    java.util.Enumeration enumEntries = jar.entries();
+                    while (enumEntries.hasMoreElements()) {
+                        java.util.jar.JarEntry file = (java.util.jar.JarEntry) enumEntries.nextElement();
+
+                        if (!file.getName().contains(pattern))
+                            continue;
+
+                        java.io.File f = new java.io.File(destDir + java.io.File.separator + file.getName());
+
+                        if (!f.exists()) {
+                            java.io.File parent = f.getParentFile();
+                            if (parent != null) {
+                                parent.mkdirs();
+                                f = new java.io.File(destDir + java.io.File.separator + file.getName());
+                            }
+                        }
+
+                        if (file.isDirectory()) { // if its a directory, create it
+                            continue;
+                        }
+
+                        System.out.println("Unpacking " + file.getName() + " to " + f.toString());
+
+                        java.io.InputStream is = jar.getInputStream(file); // get the input stream
+                        java.io.FileOutputStream fos = new java.io.FileOutputStream(f);
+                        while (is.available() > 0) {  // write contents of 'is' to 'fos'
+                            fos.write(is.read());
+                        }
+                        fos.close();
+                        is.close();
+                    }
+                    jar.close();
+
+                    // update java.library.path to include tmpdir/os/arch
+                    // Note, java.library.path is cached by the JVM at startup, so force via reflective access
+                    // This may be an issue with Java 10+
+                    // See https://stackoverflow.com/questions/5419039/is-djava-library-path-equivalent-to-system-setpropertyjava-library-path
+                    String libpath = System.getProperty("java.library.path");
+                    libpath = libpath + java.io.File.pathSeparator + destDir + java.io.File.separator + pattern;
+
+                    try {
+                        System.setProperty("java.library.path", libpath);
+                        Field fieldSysPath = ClassLoader.class.getDeclaredField("sys_paths");
+                        fieldSysPath.setAccessible(true);
+                        fieldSysPath.set(null, null);
+                    } catch( java.lang.IllegalAccessException e ) {
+                        // ignored
+                    } catch( java.lang.NoSuchFieldException e ) {
+                       // ignored
+                    }
+                }
+            }
+            catch( java.io.FileNotFoundException unused ) { }
+            catch( java.io.IOException unused ) { }
+
+            try {
                 URL url = NativeTime.class.getClassLoader().getResource("libnativetime.so");
                 if (url != null) {
                     System.load(url.getFile());
@@ -49,7 +117,9 @@ public class NativeTime {
                 // ignored.
             }
             if (!loaded)
+            {
                 System.loadLibrary("nativetime");
+            }
 
             // initial calibration
             calibrate(10);
