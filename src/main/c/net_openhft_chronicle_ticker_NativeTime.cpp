@@ -56,6 +56,14 @@ private:
 class WinNanoClock
 {
 public:
+    // see note below as to why a singleton is used/necessary
+    static WinNanoClock& instance()
+    {
+        static WinNanoClock winNanoClock;
+        return winNanoClock;
+    }
+
+private:
     WinNanoClock()
     : BASELINE_COUNT(0)
     , BASELINE_NANOS(0)
@@ -77,7 +85,7 @@ private:
     {
         // background thread which performs a fine-grained resync with wall clock once a minute
         // NB: this means there can be edge cases where the nano-clock time goes backwards between 2 calls
-        for (;;)
+        for(;;)
         {
             warmup_(1);
             std::this_thread::sleep_for(std::chrono::milliseconds(60000)); // resync every minute
@@ -165,7 +173,9 @@ private:
     double  INV_TICKS_PER_NANO; // store as 1/ticks to avoid a division in the main lookup
     spinlock lock_;
 };
-static WinNanoClock winNanoClock; // static so created at program start. continually recalibrates every 60s after
+// ideally this would be a static created at program start, so initial calibration gets out of the way
+// but using this approach appears to hang the calling JVM on libraryLoad.
+// So need to use a lazy-loaded singleton instead
 #endif
 
 /**
@@ -207,6 +217,11 @@ uint64_t cpuid_rdtsc()
     uint64_t x = ((uint64_t)lo) | (((uint64_t)hi) << 32);
     return x;
 }
+#elif defined(_WIN32)
+uint64_t cpuid_rdtsc()
+{
+    return rdtsc();
+}
 #endif
 
 /**
@@ -236,7 +251,7 @@ uint64_t clocknanos()
     clock_gettime( CLOCK_REALTIME, &tv );
     return ((uint64_t)1000000000*tv.tv_sec + tv.tv_nsec);
 #else
-    return winNanoClock.now();
+    return WinNanoClock::instance().now();
 #endif
 }
 
