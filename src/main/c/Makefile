@@ -42,7 +42,7 @@ $(TARGET): $(JNI_HEADERS) $(JNI_SOURCES)
 
 $(JNI_HEADERS): $(JNI_JAVA_SOURCES)
 	mkdir -p $(TARGET_DIR)/jni
-	javah -force -classpath $(JAVAH_CLASSPATH) -d $(WORKING_DIR) $(JAVA_CLASSES)
+	/usr/bin/javah -force -classpath $(JAVAH_CLASSPATH) -d $(WORKING_DIR) $(JAVA_CLASSES)
 
 clean:
 	rm $(TARGET)
