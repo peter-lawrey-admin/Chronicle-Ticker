@@ -26,7 +26,7 @@
 
     <modelVersion>4.0.0</modelVersion>
     <artifactId>chronicle-ticker</artifactId>
-    <version>2.17.0-SNAPSHOT</version>
+    <version>2.17.0</version>
     <packaging>bundle</packaging>
 
     <name>OpenHFT/Chronicle-Ticker</name>
@@ -104,9 +104,9 @@
                         </goals>
                         <configuration>
                             <target>
-                                <property name="makefile" value="${project.basedir}/${native.source.dir}/Makefile"/>
+                                <property name="makefile" value="${project.basedir}/${native.source.dir}/Makefile" />
                                 <!-- make it executable -->
-                                <chmod file="${makefile}" perm="u+x"/>
+                                <chmod file="${makefile}" perm="u+x" />
                             </target>
                         </configuration>
                     </execution>
@@ -214,7 +214,7 @@
         <connection>scm:git:git@github.com:OpenHFT/Chronicle-Ticker.git</connection>
         <developerConnection>scm:git:git@github.com:OpenHFT/Chronicle-Ticker.git
         </developerConnection>
-        <tag>master</tag>
+        <tag>chronicle-ticker-2.17.0</tag>
     </scm>
 
 </project>
