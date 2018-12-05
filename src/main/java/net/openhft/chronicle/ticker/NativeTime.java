@@ -17,9 +17,6 @@
 
 package net.openhft.chronicle.ticker;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.lang.reflect.Field;
 import java.net.URL;
 import java.security.CodeSource;
@@ -35,7 +32,6 @@ import java.security.CodeSource;
 
 public class NativeTime {
     public static final boolean LOADED;
-    private static final Logger LOGGER = LoggerFactory.getLogger(NativeTime.class);
     private static double ticks_per_nanosecond = 1.0;
 
     static {
@@ -131,7 +127,6 @@ public class NativeTime {
 
             loaded = true;
         } catch (UnsatisfiedLinkError ule) {
-            LOGGER.debug("Unable to find libticker in [" + System.getProperty("java.library.path") + "] " + ule);
             loaded = false;
         }
 

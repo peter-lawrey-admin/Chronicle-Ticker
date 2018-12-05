@@ -12,6 +12,9 @@ WORKING_DIR := $(TARGET_DIR)/../jni
 
 JAVA_CLASSES = net.openhft.chronicle.ticker.NativeTime
 
+JAVA_SRC := $(subst .,/,$(JAVA_CLASSES))
+JAVA_SRC := ../../../src/main/java/$(JAVA_SRC).java
+
 JNI_STUBS := $(subst .,_,$(JAVA_CLASSES))
 JNI_HEADERS := $(patsubst %,$(WORKING_DIR)/%.h,$(JNI_STUBS))
 JNI_SOURCES := $(patsubst %,%.cpp,$(JNI_STUBS))
@@ -40,9 +43,9 @@ all: $(TARGET)
 $(TARGET): $(JNI_HEADERS) $(JNI_SOURCES)
 	$(CXX) -O3 -Wall -std=c++11 -shared -fPIC $(JVM_SHARED_LIBS) -ljvm -lrt $(INCLUDES) $(JNI_SOURCES) -o $(TARGET)
 
-$(JNI_HEADERS): $(JNI_JAVA_SOURCES)
+$(JNI_HEADERS): $(JAVA_SRC)
 	mkdir -p $(TARGET_DIR)/jni
-	javah -force -classpath $(JAVAH_CLASSPATH) -d $(WORKING_DIR) $(JAVA_CLASSES)
+	javac -h $(WORKING_DIR) -classpath $(JAVAH_CLASSPATH) $(JAVA_SRC)
 
 clean:
 	rm $(TARGET)
