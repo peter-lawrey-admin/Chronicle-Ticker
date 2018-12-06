@@ -35,7 +35,17 @@
     <properties>
         <native.source.dir>src/main/c</native.source.dir>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <makefile>Makefile</makefile>
     </properties>
+
+    <profiles>
+       <profile>
+           <id>java11</id>
+           <properties>
+               <makefile>Makefile11</makefile>
+           </properties>
+       </profile>
+    </profiles>
 
     <dependencyManagement>
         <dependencies>
@@ -104,9 +114,9 @@
                         </goals>
                         <configuration>
                             <target>
-                                <property name="makefile" value="${project.basedir}/${native.source.dir}/Makefile" />
+                                <property name="makefile_" value="${project.basedir}/${native.source.dir}/${makefile}" />
                                 <!-- make it executable -->
-                                <chmod file="${makefile}" perm="u+x" />
+                                <chmod file="${makefile_}" perm="u+x" />
                             </target>
                         </configuration>
                     </execution>
@@ -126,7 +136,7 @@
                             <goal>exec</goal>
                         </goals>
                         <configuration>
-                            <executable>${project.basedir}/${native.source.dir}/Makefile</executable>
+                            <executable>${project.basedir}/${native.source.dir}/${makefile}</executable>
                             <workingDirectory>${project.basedir}/${native.source.dir}</workingDirectory>
                         </configuration>
                     </execution>
