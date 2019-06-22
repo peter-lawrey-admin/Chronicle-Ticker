@@ -9,4 +9,8 @@ public class NanoTickerTest implements BaseTickerTest {
         driver(NanoTicker.INSTANCE);
     }
 
+    @Test
+    public void epochTimeTest() {
+        checkEpochTime(NanoTicker.INSTANCE);
+    }
 }

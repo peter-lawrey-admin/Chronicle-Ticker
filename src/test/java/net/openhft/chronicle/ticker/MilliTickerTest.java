@@ -9,4 +9,8 @@ public class MilliTickerTest implements BaseTickerTest {
         driver(MilliTicker.INSTANCE);
     }
 
+    @Test
+    public void epochTimeTest() {
+        checkEpochTime(MilliTicker.INSTANCE);
+    }
 }

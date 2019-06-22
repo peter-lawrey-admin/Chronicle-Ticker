@@ -17,6 +17,8 @@
 
 package net.openhft.chronicle.ticker;
 
+import org.junit.Assert;
+
 public interface BaseTickerTest {
     /**
      * Test driver
@@ -44,5 +46,13 @@ public interface BaseTickerTest {
         System.out.println( "countFromEpoch = " + instance.countFromEpoch() );
         System.out.println( "now (count since epoch) = " + ((long)instance.count() + (long)instance.countFromEpoch()) );
         System.out.println( "Estimated CPU frequency = " + 1000*NativeTime.ticksPerNanosecond() + "MHz");
+    }
+
+    default void checkEpochTime(Ticker instance) {
+        long epochOffset = instance.countFromEpoch();
+        long epoch = instance.count() + epochOffset;
+        long epochMillis = epoch / (instance.countPerSecond() / 1000);
+        long diffMillis = epochMillis - System.currentTimeMillis();
+        Assert.assertTrue(Math.abs(diffMillis) < 1000);
     }
 }

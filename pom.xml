@@ -191,6 +191,10 @@
                         <Export-Package>
                             net.openhft.chronicle.ticker.*;-noimport:=true
                         </Export-Package>
+                        <Include-Resource>
+                            linux/amd64/libnativetime.so=-./target/classes/linux/amd64/libnativetime.so,
+                            windows/amd64/libnativetime.so=-./target/classes/windows/amd64/nativetime.dll
+                        </Include-Resource>
                     </instructions>
                 </configuration>
                 <executions>

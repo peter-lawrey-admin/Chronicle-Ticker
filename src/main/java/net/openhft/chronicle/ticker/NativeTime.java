@@ -37,15 +37,15 @@ public class NativeTime {
     static {
         boolean loaded = false;
         try {
+            String destDir = System.getProperty("java.io.tmpdir");
+            String osname = System.getProperty("os.name").toLowerCase();
+            String arch = System.getProperty("os.arch").toLowerCase();
+            String pattern = osname + java.io.File.separator + arch;
+
             try {
                 // unpack .so from jar to tmpdir/os/arch
                 CodeSource src = NativeTime.class.getProtectionDomain().getCodeSource();
                 if (src != null) {
-                    String destDir = System.getProperty("java.io.tmpdir");
-                    String osname = System.getProperty("os.name").toLowerCase();
-                    String arch = System.getProperty("os.arch").toLowerCase();
-                    String pattern = osname + java.io.File.separator + arch;
-
                     String jarFile = src.getLocation().getFile();
                     java.util.jar.JarFile jar = new java.util.jar.JarFile(jarFile);
                     java.util.Enumeration enumEntries = jar.entries();
@@ -78,26 +78,29 @@ public class NativeTime {
                         }
                         fos.close();
                         is.close();
+
+                        // update java.library.path to include tmpdir/os/arch
+                        // Note, java.library.path is cached by the JVM at startup, so force via reflective access
+                        // This may be an issue with Java 10+
+                        // See https://stackoverflow.com/questions/5419039/is-djava-library-path-equivalent-to-system-setpropertyjava-library-path
+                        String libpath = System.getProperty("java.library.path");
+                        libpath = libpath + java.io.File.pathSeparator + destDir + java.io.File.separator + pattern;
+
+                        try {
+                            System.setProperty("java.library.path", libpath);
+                            Field fieldSysPath = ClassLoader.class.getDeclaredField("sys_paths");
+                            fieldSysPath.setAccessible(true);
+                            fieldSysPath.set(null, null);
+                        } catch( java.lang.IllegalAccessException e ) {
+                            // ignored
+                        } catch( java.lang.NoSuchFieldException e ) {
+                            // ignored
+                        }
+
+                        System.load(f.toString());
+                        loaded = true;
                     }
                     jar.close();
-
-                    // update java.library.path to include tmpdir/os/arch
-                    // Note, java.library.path is cached by the JVM at startup, so force via reflective access
-                    // This may be an issue with Java 10+
-                    // See https://stackoverflow.com/questions/5419039/is-djava-library-path-equivalent-to-system-setpropertyjava-library-path
-                    String libpath = System.getProperty("java.library.path");
-                    libpath = libpath + java.io.File.pathSeparator + destDir + java.io.File.separator + pattern;
-
-                    try {
-                        System.setProperty("java.library.path", libpath);
-                        Field fieldSysPath = ClassLoader.class.getDeclaredField("sys_paths");
-                        fieldSysPath.setAccessible(true);
-                        fieldSysPath.set(null, null);
-                    } catch( java.lang.IllegalAccessException e ) {
-                        // ignored
-                    } catch( java.lang.NoSuchFieldException e ) {
-                       // ignored
-                    }
                 }
             }
             catch( java.io.FileNotFoundException unused ) { }

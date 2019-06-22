@@ -1,5 +1,6 @@
 package net.openhft.chronicle.ticker;
 
+import org.junit.Assert;
 import org.junit.Test;
 
 public class NanoClockTest {
@@ -20,5 +21,11 @@ public class NanoClockTest {
         long time = System.nanoTime() - start;
         double avgTime = (double) time / tests;
         System.out.printf("NanoClockTest: Average time to call nanoClock() %.1f ns%n", avgTime);
+    }
+
+    @Test
+    public void epochTimeTest() {
+        long nowMillis = Ticker.nanoClock() / 1000000;
+        Assert.assertTrue(Math.abs(nowMillis - System.currentTimeMillis()) < 1000);
     }
 }
