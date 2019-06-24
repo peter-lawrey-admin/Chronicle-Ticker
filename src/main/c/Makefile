@@ -12,6 +12,9 @@ WORKING_DIR := $(TARGET_DIR)/../jni
 
 JAVA_CLASSES = net.openhft.chronicle.ticker.NativeTime
 
+JAVA_SRC := $(subst .,/,$(JAVA_CLASSES))
+JAVA_SRC := ../../../src/main/java/$(JAVA_SRC).java
+
 JNI_STUBS := $(subst .,_,$(JAVA_CLASSES))
 JNI_HEADERS := $(patsubst %,$(WORKING_DIR)/%.h,$(JNI_STUBS))
 JNI_SOURCES := $(patsubst %,%.cpp,$(JNI_STUBS))
@@ -23,7 +26,7 @@ JAVA_HOME ?= /usr/java/default
 JAVA_LIB := $(JAVA_HOME)/jre/lib
 JVM_SHARED_LIBS := -L$(JAVA_LIB)/amd64/server -L$(JAVA_LIB)/i386/server  -L$(JAVA_LIB)/amd64/jrockit/ -L$(JAVA_LIB)/i386/jrockit/
 
-CXX=g++
+CXX=gcc
 INCLUDES := -I $(JAVA_HOME)/include -I $(JAVA_HOME)/include/linux -I $(WORKING_DIR)
 
 # classpath for javah
@@ -35,6 +38,8 @@ endif
 
 .PHONY : clean
 
+JAVAH := $(shell command -v javah 2> /dev/null)
+
 all: $(TARGET)
 
 $(TARGET): $(JNI_HEADERS) $(JNI_SOURCES)
@@ -42,7 +47,11 @@ $(TARGET): $(JNI_HEADERS) $(JNI_SOURCES)
 
 $(JNI_HEADERS): $(JNI_JAVA_SOURCES)
 	@mkdir -p $(TARGET_DIR)/jni
+ifdef JAVAH
 	@javah -force -classpath $(JAVAH_CLASSPATH) -d $(WORKING_DIR) $(JAVA_CLASSES)
+else
+	javac -h $(WORKING_DIR) -classpath $(JAVAH_CLASSPATH) $(JAVA_SRC)
+endif
 
 clean:
 	rm $(TARGET)
