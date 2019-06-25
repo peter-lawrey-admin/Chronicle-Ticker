@@ -38,8 +38,8 @@ public class NativeTime {
         boolean loaded = false;
         try {
             String destDir = System.getProperty("java.io.tmpdir");
-            String osname = System.getProperty("os.name").toLowerCase();
-            String arch = System.getProperty("os.arch").toLowerCase();
+            String osname = System.getProperty("os.name");
+            String arch = System.getProperty("os.arch");
             String pattern = osname + java.io.File.separator + arch;
 
             try {
@@ -52,7 +52,7 @@ public class NativeTime {
                     while (enumEntries.hasMoreElements()) {
                         java.util.jar.JarEntry file = (java.util.jar.JarEntry) enumEntries.nextElement();
 
-                        if (!file.getName().contains(pattern))
+                        if (! containsIgnoreCase(file.getName(), pattern))
                             continue;
 
                         java.io.File f = new java.io.File(destDir + java.io.File.separator + file.getName());
@@ -106,19 +106,11 @@ public class NativeTime {
             catch( java.io.FileNotFoundException unused ) { }
             catch( java.io.IOException unused ) { }
 
-            try {
-                URL url = NativeTime.class.getClassLoader().getResource("libnativetime.so");
-                if (url != null) {
-                    System.load(url.getFile());
-                    loaded = true;
-                }
-            } catch(Exception e){
-                // ignored.
-            }
+            loaded = tryLoad("libnativetime.so");
             if (!loaded)
-            {
+                loaded = tryLoad(pattern + java.io.File.separator + "libnativetime.so");
+            if (!loaded)
                 System.loadLibrary("nativetime");
-            }
 
             // initial calibration
             calibrate(10);
@@ -134,6 +126,23 @@ public class NativeTime {
         }
 
         LOADED=loaded;
+    }
+
+    private static boolean tryLoad(String path) {
+        try {
+            URL url = NativeTime.class.getClassLoader().getResource(path);
+            if (url != null) {
+                System.load(url.getFile());
+                return true;
+            }
+        } catch(Exception e){
+            // ignored.
+        }
+        return false;
+    }
+
+    private static boolean containsIgnoreCase(String s1, String s2) {
+        return s1.toLowerCase().contains(s2.toLowerCase());
     }
 
     /**

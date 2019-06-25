@@ -5,8 +5,10 @@
 
 # C sources to compile
 
-TARGET_DIR := ../../../target/classes
-TARGET := $(TARGET_DIR)/libnativetime.so
+TARGET_EXT ?= /
+TARGET_DIR := ../../../target/classes/
+TARGET_DIR_EXT := $(TARGET_DIR)$(TARGET_EXT)
+TARGET := $(TARGET_DIR_EXT)/libnativetime.so
 
 WORKING_DIR := $(TARGET_DIR)/../jni
 
@@ -43,6 +45,7 @@ JAVAH := $(shell command -v javah 2> /dev/null)
 all: $(TARGET)
 
 $(TARGET): $(JNI_HEADERS) $(JNI_SOURCES)
+	@mkdir -p $(TARGET_DIR_EXT)
 	$(CXX) -O3 -Wall -std=c++11 -shared -fPIC $(JVM_SHARED_LIBS) -ljvm -lrt $(INCLUDES) $(JNI_SOURCES) -o $(TARGET)
 
 $(JNI_HEADERS): $(JNI_JAVA_SOURCES)

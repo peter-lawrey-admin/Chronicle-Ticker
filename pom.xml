@@ -138,6 +138,9 @@
                         <configuration>
                             <executable>${project.basedir}/${native.source.dir}/${makefile}</executable>
                             <workingDirectory>${project.basedir}/${native.source.dir}</workingDirectory>
+                            <environmentVariables>
+                                <TARGET_EXT>${os.name}/${os.arch}</TARGET_EXT>
+                            </environmentVariables>
                         </configuration>
                     </execution>
                 </executions>
@@ -192,8 +195,8 @@
                             net.openhft.chronicle.ticker.*;-noimport:=true
                         </Export-Package>
                         <Include-Resource>
-                            linux/amd64/libnativetime.so=-./target/classes/linux/amd64/libnativetime.so,
-                            windows/amd64/libnativetime.so=-./target/classes/windows/amd64/nativetime.dll
+                            Linux/amd64/libnativetime.so=-./target/classes/Linux/amd64/libnativetime.so,
+                            windows/amd64/libnativetime.dll=-./target/classes/windows/amd64/nativetime.dll
                         </Include-Resource>
                     </instructions>
                 </configuration>
