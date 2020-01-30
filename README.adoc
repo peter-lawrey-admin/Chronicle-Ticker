@@ -61,6 +61,7 @@ long timeInMillis = (end - start) * 1_000_000 / ticker.countPerSecond();
 Example from tests
 
 ```
+        Ticker instance = ...
         long epochOffset = instance.countFromEpoch();
         long epochTicks = instance.count() + epochOffset;
         long epochMillis = epochTicks / (instance.countPerSecond() / 1000);
