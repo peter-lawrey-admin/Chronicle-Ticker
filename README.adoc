@@ -56,3 +56,14 @@ long timeInMillis = (end - start) * 1_000_000 / ticker.countPerSecond();
 | Ticker.highResolution().count() | 6.8 ns
 |===
 
+=== Epoch time
+
+Example from tests
+
+```
+        long epochOffset = instance.countFromEpoch();
+        long epochTicks = instance.count() + epochOffset;
+        long epochMillis = epochTicks / (instance.countPerSecond() / 1000);
+        long diffMillis = epochMillis - System.currentTimeMillis();
+        Assert.assertTrue(Math.abs(diffMillis) < 1000);
+```
