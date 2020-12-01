@@ -1,6 +1,13 @@
 = Chronicle-Ticker
 Peter Lawrey
 
+[#image-maven]
+[caption="",link=https://maven-badges.herokuapp.com/maven-central/net.openhft/chronicle-ticker]
+image::https://maven-badges.herokuapp.com/maven-central/net.openhft/chronicle-ticker/badge.svg[]
+[#image-javadoc]
+[caption="",link=https://www.javadoc.io/doc/net.openhft/chronicle-ticker/latest/index.html]
+image::https://javadoc.io/badge2/net.openhft/chronicle-ticker/javadoc.svg[]
+
 A time ticker as a light weight clock
 
 == Simple Tickers
