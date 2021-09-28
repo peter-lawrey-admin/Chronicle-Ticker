@@ -36,6 +36,8 @@ public class NativeTime {
 
     static {
         boolean loaded = false;
+        Object originalSysPathValue = null;
+        Field fieldSysPath = null;
         try {
             String destDir = System.getProperty("java.io.tmpdir");
             String osname = System.getProperty("os.name");
@@ -88,8 +90,9 @@ public class NativeTime {
 
                         try {
                             System.setProperty("java.library.path", libpath);
-                            Field fieldSysPath = ClassLoader.class.getDeclaredField("sys_paths");
+                            fieldSysPath = ClassLoader.class.getDeclaredField("sys_paths");
                             fieldSysPath.setAccessible(true);
+                            originalSysPathValue = fieldSysPath.get(null);
                             fieldSysPath.set(null, null);
                         } catch( java.lang.IllegalAccessException e ) {
                             // ignored
@@ -106,7 +109,8 @@ public class NativeTime {
             catch( java.io.FileNotFoundException unused ) { }
             catch( java.io.IOException unused ) { }
 
-            loaded = tryLoad("libnativetime.so");
+            if (!loaded)
+                loaded = tryLoad("libnativetime.so");
             if (!loaded)
                 loaded = tryLoad(pattern + java.io.File.separator + "libnativetime.so");
             if (!loaded)
@@ -123,9 +127,23 @@ public class NativeTime {
             loaded = true;
         } catch (UnsatisfiedLinkError ule) {
             loaded = false;
+        } finally {
+            if (originalSysPathValue != null) {
+                try {
+                    Object updatedSysPathValue = fieldSysPath.get(null);
+
+                    if (updatedSysPathValue == null) {
+                        // On some JVM implementations, java.lang.ClassLoader.sys_paths may be not recalculated.
+                        // Restore its state to prevent side effects.
+                        fieldSysPath.set(null, originalSysPathValue);
+                    }
+                } catch (IllegalAccessException e) {
+                    // Shouldn't happen - we have already retrieved this field with reflection.
+                }
+            }
         }
 
-        LOADED=loaded;
+        LOADED = loaded;
     }
 
     private static boolean tryLoad(String path) {
