@@ -39,9 +39,9 @@ public class NativeTime {
         Object originalSysPathValue = null;
         Field fieldSysPath = null;
         try {
-            String destDir = Jvm.getProperty("java.io.tmpdir");
-            String osname = Jvm.getProperty("os.name");
-            String arch = Jvm.getProperty("os.arch");
+            String destDir = System.getProperty("java.io.tmpdir");
+            String osname = System.getProperty("os.name");
+            String arch = System.getProperty("os.arch");
             String pattern = osname + java.io.File.separator + arch;
 
             try {
@@ -85,7 +85,7 @@ public class NativeTime {
                         // Note, java.library.path is cached by the JVM at startup, so force via reflective access
                         // This may be an issue with Java 10+
                         // See https://stackoverflow.com/questions/5419039/is-djava-library-path-equivalent-to-system-setpropertyjava-library-path
-                        String libpath = Jvm.getProperty("java.library.path");
+                        String libpath = System.getProperty("java.library.path");
                         libpath = libpath + java.io.File.pathSeparator + destDir + java.io.File.separator + pattern;
 
                         try {
