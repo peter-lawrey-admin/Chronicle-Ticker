@@ -46,7 +46,7 @@
                 <jdk>[11,16]</jdk>
             </activation>
             <properties>
-                <makefile>Makefile11</makefile>
+                <makefile>Makefile</makefile>
             </properties>
         </profile>
         <profile>
@@ -55,7 +55,7 @@
                 <jdk>[17,</jdk>
             </activation>
             <properties>
-                <makefile>Makefile17</makefile>
+                <makefile>Makefile</makefile>
             </properties>
         </profile>
     </profiles>
