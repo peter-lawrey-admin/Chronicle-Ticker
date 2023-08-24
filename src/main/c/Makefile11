@@ -24,7 +24,7 @@ JNI_JAVA_SOURCES := $(patsubst %,$(TARGET_DIR)/%.class,$(subst .,/,$(JAVA_CLASSE
 
 JAVA_BUILD_DIR := $(TARGET_DIR)
 
-JAVA_HOME := /usr/lib/jvm/jdk-11
+JAVA_HOME ?= /usr/lib/jvm/jdk-11
 JAVA_LIB := $(JAVA_HOME)/lib
 JVM_SHARED_LIBS := -L$(JAVA_LIB)/server
 
